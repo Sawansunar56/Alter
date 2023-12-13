@@ -4,6 +4,23 @@ local data_path = vim.fn.stdpath("data")
 local user_config = string.format("%s/alter.json", config_path)
 local cache_config = string.format("%s/alter.json", data_path)
 
+-- Class declarations sections
+
+---@class AlterData
+---@field tbl {}
+---@field primary string
+local alterData = {
+    tbl = {},
+    primary = ""
+}
+
+---@class Alter
+---@field data AlterData
+---@field primary string
+local alterConfig = {
+    data = alterData,
+}
+
 -- util function sections
 -- prints out all given table
 local function printAllElements(tbl)
@@ -43,66 +60,81 @@ local function normalize_path(bufnr)
     return Path:new(bufnr):make_relative(project_key())
 end
 
--- Class declarations sections
-
----@class AlterData
----@field tbl {}
----@field primary string
-local alterData = {
-    tbl = {},
-    primary = ""
-}
-
----@class Alter
----@field data AlterData
----@field primary string
-local alterConfig = {
-    data = alterData,
-}
+---@return string
+local function current_buf_num()
+    return normalize_path( vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
+end
 
 -- class methods declarations
 
 -- reads cache_config and puts it to alterData.tbl and prints out the values.
-function alterConfig:Load()
+function alterConfig:LoadConfig()
     self.data = vim.json.decode(Path:new(cache_config):read())
     printAllElements(self.data)
 end
 
-
-function alterConfig:AddFile()
-    local slot = normalize_path(vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
-    print(slot)
-    alterConfig.data.primary = slot
-end
-
-function alterConfig:ConnectFile()
-    local slot = normalize_path(vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
-    if self.data.primary == slot then
-        print("Cannot choose the same file")
-        return
-    end
-    alterConfig.data.tbl[self.data.primary]["connected"] = slot
-    self.data.primary = ""
-end
-
-
-local function save_to_cache()
+function alterConfig:SaveConfig()
     Path:new(cache_config):write(vim.fn.json_encode(alterConfig.data), "w")
 end
 
-local function set_current_buffer()
-    local slot = normalize_path( vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
+-- Sets primary holder to the current buffer
+function alterConfig:AddFile()
+    local slot = current_buf_num()
     local data = create_mark(slot)
     alterConfig.data.tbl[data.filename] = {
         row = data.row,
         col = data.col,
         connected = ""
     }
+    alterConfig.data.primary = slot
 end
 
-local function current_buf_num()
-    local slot = normalize_path( vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
+-- Connects Current buffer with the primary holder
+function alterConfig:ConnectFile()
+    local slot = current_buf_num()
+    if self.data.primary == slot then
+        print("Cannot choose the same file")
+        return
+    end
+    alterConfig.data.tbl[self.data.primary]["connected"] = slot
+    alterConfig.data.tbl[slot]["connected"] = self.data.primary
+    self.data.primary = ""
 end
+
+-- Sets primary holder to nothing
+function alterConfig:DeleteMark()
+    self.data.primary = ""
+end
+
+-- Deletes the Connection between the current open file and it's alternative
+function alterConfig:DeleteConnection()
+    local slot = current_buf_num()
+    local alternateFile = self.data.tbl[slot]["connected"]
+    self.data.tbl[slot]["connected"] = ""
+    self.data.tbl[alternateFile]["connected"] = ""
+    print(alternateFile)
+end
+
+function alterConfig:Alternate()
+    local slot = current_buf_num()
+    if self.data.tbl[slot]["connected"] == "" then
+        print"No Connection made"
+        return 
+    end
+    local bufnr = vim.fn.bufnr(self.data.tbl[slot]["connected"])
+
+    if bufnr == -1 then
+         bufnr = vim.fn.bufnr(self.data.tbl[slot]["connected"], true)
+    end
+
+    if not vim.api.nvim_set_current_buf(bufnr) then
+        vim.fn.bufload(bufnr)
+        vim.api.nvim_set_option_value("buflisted", true, {
+            buf = bufnr,
+        })
+    end
+end
+
 
 ---@param num integer
 local function set_bufnr(num)
@@ -117,10 +149,6 @@ local function set_bufnr(num)
          bufnr = vim.fn.bufnr(alterConfig.data.tbl[num]["filename"], true)
     end
 
-    -- have to make it work
-    -- vim.api.nvim_command('buffer ' .. bufnr)
-    -- vim.api.nvim_buf_is_loaded(bufnr)
-
     if not vim.api.nvim_set_current_buf(bufnr) then
         vim.fn.bufload(bufnr)
         vim.api.nvim_set_option_value("buflisted", true, {
@@ -130,12 +158,7 @@ local function set_bufnr(num)
 end
 
 
-
-
 return {
-    cur = set_current_buffer,
     set = set_bufnr,
-    cac = save_to_cache,
-    alterData = alterData,
     alterConfig = alterConfig,
 }
