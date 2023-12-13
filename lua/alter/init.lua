@@ -151,6 +151,7 @@ function alterConfig:DeleteConnection()
     self.data.tbl[self.projectKey][alternateFile]["connected"] = ""
 end
 
+-- go to alternatte file
 function alterConfig:Alternate()
     local slot = current_buf_num()
 
