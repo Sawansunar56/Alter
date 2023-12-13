@@ -23,13 +23,11 @@ local function create_mark(filename)
 
     print(cursor_pos[1], cursor_pos[2])
 
-    local data = {}
-    data[filename] = {
+    return {
+        filename = filename,
         row = cursor_pos[1],
         col = cursor_pos[2],
     }
-
-    return data
 end
 
 ---@return string| nil
@@ -37,20 +35,29 @@ local function project_key()
     return vim.loop.cwd()
 end
 
+---@param bufnr string
+---@return string
+local function normalize_path(bufnr)
+    -- make current buffers absolute path to relative with reference to 
+    -- current project directory.
+    return Path:new(bufnr):make_relative(project_key())
+end
+
 -- Class declarations sections
 
 ---@class AlterData
 ---@field tbl {}
----@field connections {}
+---@field primary string
 local alterData = {
     tbl = {},
-    connections = {}
+    primary = ""
 }
 
 ---@class Alter
 ---@field data AlterData
+---@field primary string
 local alterConfig = {
-    data = alterData
+    data = alterData,
 }
 
 -- class methods declarations
@@ -61,19 +68,23 @@ function alterConfig:Load()
     printAllElements(self.data)
 end
 
-local function connection_maker()
-   alterConfig.data.connections["1"] = 2
-   alterConfig.data.connections["2"] = 1
+
+function alterConfig:AddFile()
+    local slot = normalize_path(vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
+    print(slot)
+    alterConfig.data.primary = slot
 end
 
-
----@param bufnr string
----@return string
-local function normalize_path(bufnr)
-    -- make current buffers absolute path to relative with reference to 
-    -- current project directory.
-    return Path:new(bufnr):make_relative(project_key())
+function alterConfig:ConnectFile()
+    local slot = normalize_path(vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
+    if self.data.primary == slot then
+        print("Cannot choose the same file")
+        return
+    end
+    alterConfig.data.tbl[self.data.primary]["connected"] = slot
+    self.data.primary = ""
 end
+
 
 local function save_to_cache()
     Path:new(cache_config):write(vim.fn.json_encode(alterConfig.data), "w")
@@ -82,10 +93,14 @@ end
 local function set_current_buffer()
     local slot = normalize_path( vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
     local data = create_mark(slot)
-    table.insert(alterConfig.data.tbl, data)
+    alterConfig.data.tbl[data.filename] = {
+        row = data.row,
+        col = data.col,
+        connected = ""
+    }
 end
 
-local function current_buf_num() 
+local function current_buf_num()
     local slot = normalize_path( vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
 end
 
@@ -123,5 +138,4 @@ return {
     cac = save_to_cache,
     alterData = alterData,
     alterConfig = alterConfig,
-    connection = connection_maker,
 }
