@@ -1,7 +1,7 @@
 local Path = require("plenary.path")
-local config_path = vim.fn.stdpath("config")
+-- local config_path = vim.fn.stdpath("config")
 local data_path = vim.fn.stdpath("data")
-local user_config = string.format("%s/alter.json", config_path)
+-- local user_config = string.format("%s/alter.json", config_path)
 local cache_config = string.format("%s/alter.json", data_path)
 
 -- Class declarations sections
@@ -126,8 +126,8 @@ function alterConfig:ConnectFile()
             connected = ""
         }
     end
-    alterConfig.data.tbl[self.projectKey][self.data.primary]["connected"] = slot
-    alterConfig.data.tbl[self.projectKey][slot]["connected"] = self.data.primary
+    self.data.tbl[self.projectKey][self.data.primary]["connected"] = slot
+    self.data.tbl[self.projectKey][slot]["connected"] = self.data.primary
     self.data.primary = ""
     self:SaveConfig()
 end
@@ -136,6 +136,11 @@ end
 -- Clears the entire table
 function alterConfig:ClearTbl()
     self.data.tbl = {}
+end
+
+-- clear project table
+function alterConfig:ClearCurrentProject()
+    self.data.tbl[self.projectKey] = {}
 end
 
 -- Sets primary holder to nothing
@@ -168,8 +173,10 @@ function alterConfig:Alternate()
     end
 
     local bufnr = vim.fn.bufnr(self.data.tbl[self.projectKey][slot]["connected"])
+    local position = false
 
     if bufnr == -1 then
+        position = true
         bufnr = vim.fn.bufnr(self.data.tbl[self.projectKey][slot]["connected"], true)
     end
 
@@ -178,6 +185,10 @@ function alterConfig:Alternate()
         vim.api.nvim_set_option_value("buflisted", true, {
             buf = bufnr,
         })
+    end
+
+    if position then
+        vim.api.nvim_win_set_cursor(0, {self.data.tbl[self.projectKey][slot]["row"], self.data.tbl[self.projectKey][slot]["col"]})
     end
 end
 
