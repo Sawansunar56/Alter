@@ -37,15 +37,13 @@ local function printAllElements(tbl)
     end
 end
 
----@param filename string
 ---@return table
-local function create_mark(filename)
+local function create_mark()
     local cursor_pos = vim.api.nvim_win_get_cursor(0)
 
     print(cursor_pos[1], cursor_pos[2])
 
     return {
-        filename = filename,
         row = cursor_pos[1],
         col = cursor_pos[2],
     }
@@ -97,50 +95,60 @@ end
 -- Sets primary holder to the current buffer
 function alterConfig:AddFile()
     local slot = current_buf_num()
-    if alterConfig.data.tbl[self.projectKey][slot] == nil then
-        local data = create_mark(slot)
-        alterConfig.data.tbl[self.projectKey][data.filename] = {
-            row = data.row,
-            col = data.col,
-            connected = ""
-        }
-    end
-    alterConfig.data.primary = slot
+    local current_project_tbl = self.data.tbl[self.projectKey]
+    local mark = create_mark()
+
+    current_project_tbl[slot].connected = ""
+    current_project_tbl[slot].row = mark.row
+    current_project_tbl[slot].col = mark.col
+    self.data.primary = slot
 end
 
 -- Connects Current buffer with the primary holder
 function alterConfig:ConnectFile()
     local slot = current_buf_num()
-    if self.data.primary == slot then
+    local primary = self.data.primary
+    local current_project_tbl = self.data.tbl[self.projectKey]
+    local mark = create_mark()
+
+    if primary == slot then
         print("Cannot choose the same file")
         return
-    elseif self.data.primary == "" then
+    elseif primary == "" then
         print("choose a primary holder first")
         return
     end
-    if alterConfig.data.tbl[self.projectKey][slot] == nil then
-        local data = create_mark(slot)
-        alterConfig.data.tbl[self.projectKey][data.filename] = {
-            row = data.row,
-            col = data.col,
-            connected = ""
-        }
-    end
-    self.data.tbl[self.projectKey][self.data.primary]["connected"] = slot
-    self.data.tbl[self.projectKey][slot]["connected"] = self.data.primary
-    self.data.primary = ""
+
+    current_project_tbl[slot].connected = ""
+    current_project_tbl[slot].row = mark.row
+    current_project_tbl[slot].col = mark.col
+
+    current_project_tbl[primary]["connected"] = slot
+    current_project_tbl[slot]["connected"] = primary
+    primary = ""
+
     self:SaveConfig()
 end
 
 
 -- Clears the entire table
-function alterConfig:ClearTbl()
+function alterConfig:ClearTable()
     self.data.tbl = {}
 end
 
 -- clear project table
 function alterConfig:ClearCurrentProject()
     self.data.tbl[self.projectKey] = {}
+end
+
+function alterConfig:ClearCurrentFile()
+    local slot = current_buf_num()
+    local current_project_tbl = self.data.tbl[self.projectKey]
+    if current_project_tbl[slot]["connected"] ~= "" then
+        local alternate = current_project_tbl[slot]["connected"]
+        current_project_tbl[alternate]["connected"] = ""
+    end
+    self.data.tbl[self.projectKey][slot] = nil
 end
 
 -- Sets primary holder to nothing
@@ -151,33 +159,44 @@ end
 -- Deletes the Connection between the current open file and it's alternative
 function alterConfig:DeleteConnection()
     local slot = current_buf_num()
-    local alternateFile = self.data.tbl[self.projectKey][slot]["connected"]
-    self.data.tbl[self.projectKey][slot]["connected"] = ""
-    self.data.tbl[self.projectKey][alternateFile]["connected"] = ""
+    local current_project_tbl = self.data.tbl[self.projectKey]
+
+    if current_project_tbl[slot] == nil then
+        print"File not indexed"
+        return
+    end
+    local alternateFile = current_project_tbl[slot]["connected"]
+    if alternateFile == "" then
+        print"no Connection found"
+        return
+    end
+    current_project_tbl[slot]["connected"] = ""
+    current_project_tbl[alternateFile]["connected"] = ""
 end
 
 -- go to alternatte file
 function alterConfig:Alternate()
     local slot = current_buf_num()
+    local current_project_tbl = self.data.tbl[self.projectKey]
 
-    if self.data.tbl[self.projectKey][slot] == nil then
+    if current_project_tbl[slot] == nil then
         print"file not added to tbl"
         return
     end
-    if self.data.tbl[self.projectKey][slot]["connected"] == nil then
+    if current_project_tbl[slot]["connected"] == nil then
         print "slot not found"
         return
-    elseif self.data.tbl[self.projectKey][slot]["connected"] == "" then
+    elseif current_project_tbl[slot]["connected"] == "" then
         print "No file connected yet"
         return
     end
 
-    local bufnr = vim.fn.bufnr(self.data.tbl[self.projectKey][slot]["connected"])
+    local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
     local position = false
 
     if bufnr == -1 then
         position = true
-        bufnr = vim.fn.bufnr(self.data.tbl[self.projectKey][slot]["connected"], true)
+        bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"], true)
     end
 
     if not vim.api.nvim_set_current_buf(bufnr) then
@@ -188,28 +207,30 @@ function alterConfig:Alternate()
     end
 
     if position then
-        vim.api.nvim_win_set_cursor(0, {self.data.tbl[self.projectKey][slot]["row"], self.data.tbl[self.projectKey][slot]["col"]})
+        vim.api.nvim_win_set_cursor(0, {current_project_tbl[slot]["row"], current_project_tbl[slot]["col"]})
     end
 end
 
 function alterConfig:PrintConnection()
     local slot = current_buf_num()
-    if self.data.tbl[self.projectKey][slot] == nil then
+    local current_project_tbl = self.data.tbl[self.projectKey]
+    if current_project_tbl[slot] == nil then
         print"file  not added to tbl"
         return
     end
-    if self.data.tbl[self.projectKey][slot]["connected"] == nil then
+    if current_project_tbl[slot]["connected"] == nil then
         print"No Connection has been made for this file"
         return
     end
-    print(self.data.tbl[self.projectKey][slot]["connected"])
+    print(current_project_tbl[slot]["connected"])
 end
 
 
 function alterConfig:CreateWindow()
     local buf = vim.api.nvim_create_buf(false, true)
+    local current_project_tbl = self.data.tbl[self.projectKey]
     local myTable = ""
-    for key, value in pairs(self.data.tbl[self.projectKey]) do
+    for key, value in pairs(current_project_tbl) do
         myTable = key .. " connected " .. value["connected"]
         vim.api.nvim_buf_set_lines(buf, -1, -1, true, { myTable })
     end
@@ -230,6 +251,11 @@ function alterConfig:CreateWindow()
     vim.keymap.set("n", "q",
     function()
         vim.api.nvim_win_close(win, true)
+    end, {buffer = buf, silent = true})
+    vim.keymap.set("n", "ss",
+    function()
+        self:SaveConfig()
+        print("Saved")
     end, {buffer = buf, silent = true})
 end
 
