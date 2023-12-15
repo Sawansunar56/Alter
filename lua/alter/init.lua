@@ -98,6 +98,9 @@ function alterConfig:AddFile()
     local current_project_tbl = self.data.tbl[self.projectKey]
     local mark = create_mark()
 
+    if current_project_tbl[slot] == nil then
+        current_project_tbl[slot] = {}
+    end
     current_project_tbl[slot].connected = ""
     current_project_tbl[slot].row = mark.row
     current_project_tbl[slot].col = mark.col
@@ -119,13 +122,16 @@ function alterConfig:ConnectFile()
         return
     end
 
+    if current_project_tbl[slot] == nil then
+        current_project_tbl[slot] = {}
+    end
     current_project_tbl[slot].connected = ""
     current_project_tbl[slot].row = mark.row
     current_project_tbl[slot].col = mark.col
 
     current_project_tbl[primary]["connected"] = slot
     current_project_tbl[slot]["connected"] = primary
-    primary = ""
+    self.data.primary = ""
 
     self:SaveConfig()
 end
