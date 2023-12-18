@@ -236,19 +236,27 @@ function alterConfig:CreateWindow()
     local buf = vim.api.nvim_create_buf(false, true)
     local current_project_tbl = self.data.tbl[self.projectKey]
     local myTable = ""
+    local count = 1
     for key, value in pairs(current_project_tbl) do
-        myTable = key .. " connected " .. value["connected"]
+        myTable = count .. ". " .. key .. "  <-connected->  " .. value["connected"]
         vim.api.nvim_buf_set_lines(buf, -1, -1, true, { myTable })
+        count = count + 1
+    end
+    local ui = vim.api.nvim_list_uis()[1]
+    local col = 12
+    if ui ~= nil then
+        col = math.max(ui.width / 2 + 40, 0)
     end
 	local opts = {
 		relative = "editor",
-		width = 70,
+		width = 80,
 		height = 10,
-		col = (vim.go.columns/ 2) + 30,
+		col = col,
 		row = (vim.go.lines / 2),
 		anchor = "SE",
 		style = "minimal",
 		title = "Alter Pairings",
+        title_pos = "center",
 		border = "rounded",
 	}
 	local win = vim.api.nvim_open_win(buf, false, opts)
