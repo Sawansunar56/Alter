@@ -89,7 +89,7 @@ function alterConfig:LoadConfig()
 end
 
 function alterConfig:SaveConfig()
-    Path:new(cache_config):write(vim.fn.json_encode(alterConfig.data), "w")
+    Path:new(cache_config):write(vim.json.encode(alterConfig.data), "w")
 end
 
 -- Sets primary holder to the current buffer
