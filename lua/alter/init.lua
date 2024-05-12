@@ -234,7 +234,11 @@ function alterConfig:Split()
 
     vim.cmd('vsplit')
     local win = vim.api.nvim_get_current_win()
-    local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"], true)
+    local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
+
+    if bufnr == -1 then
+        bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"], true)
+    end
     vim.api.nvim_win_set_buf(win, bufnr)
 end
 
