@@ -179,11 +179,7 @@ function alterConfig:DeleteConnection()
     current_project_tbl[alternateFile]["connected"] = ""
 end
 
--- go to alternatte file
-function alterConfig:Alternate()
-    local slot = current_buf_num()
-    local current_project_tbl = self.data.tbl[self.projectKey]
-
+local function conditionChecking(current_project_tbl, slot)
     if current_project_tbl[slot] == nil then
         print "file not added to tbl"
         return
@@ -195,6 +191,14 @@ function alterConfig:Alternate()
         print "No file connected yet"
         return
     end
+end
+
+-- go to alternatte file
+function alterConfig:Alternate()
+    local slot = current_buf_num()
+    local current_project_tbl = self.data.tbl[self.projectKey]
+
+    conditionChecking(current_project_tbl, slot)
 
     local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
     local position = false
@@ -216,23 +220,29 @@ function alterConfig:Alternate()
     end
 end
 
+function alterConfig:VSplit()
+    local slot = current_buf_num()
+    local current_project_tbl = self.data.tbl[self.projectKey]
+
+    conditionChecking(current_project_tbl, slot)
+
+    vim.cmd('vsplit')
+    local win = vim.api.nvim_get_current_win()
+    local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
+
+    if bufnr == -1 then
+        bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"], true)
+    end
+    vim.api.nvim_win_set_buf(win, bufnr)
+end
+
 function alterConfig:Split()
     local slot = current_buf_num()
     local current_project_tbl = self.data.tbl[self.projectKey]
 
-    if current_project_tbl[slot] == nil then
-        print "file not added to tbl"
-        return
-    end
-    if current_project_tbl[slot]["connected"] == nil then
-        print "slot not found"
-        return
-    elseif current_project_tbl[slot]["connected"] == "" then
-        print "No file connected yet"
-        return
-    end
+    conditionChecking(current_project_tbl, slot)
 
-    vim.cmd('vsplit')
+    vim.cmd('split')
     local win = vim.api.nvim_get_current_win()
     local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
 
