@@ -136,7 +136,6 @@ function alterConfig:ConnectFile()
     self:SaveConfig()
 end
 
-
 -- Clears the entire table
 function alterConfig:ClearTable()
     self.data.tbl = {}
@@ -168,12 +167,12 @@ function alterConfig:DeleteConnection()
     local current_project_tbl = self.data.tbl[self.projectKey]
 
     if current_project_tbl[slot] == nil then
-        print"File not indexed"
+        print "File not indexed"
         return
     end
     local alternateFile = current_project_tbl[slot]["connected"]
     if alternateFile == "" then
-        print"no Connection found"
+        print "no Connection found"
         return
     end
     current_project_tbl[slot]["connected"] = ""
@@ -186,7 +185,7 @@ function alterConfig:Alternate()
     local current_project_tbl = self.data.tbl[self.projectKey]
 
     if current_project_tbl[slot] == nil then
-        print"file not added to tbl"
+        print "file not added to tbl"
         return
     end
     if current_project_tbl[slot]["connected"] == nil then
@@ -213,24 +212,45 @@ function alterConfig:Alternate()
     end
 
     if position then
-        vim.api.nvim_win_set_cursor(0, {current_project_tbl[slot]["row"], current_project_tbl[slot]["col"]})
+        vim.api.nvim_win_set_cursor(0, { current_project_tbl[slot]["row"], current_project_tbl[slot]["col"] })
     end
+end
+
+function alterConfig:Split()
+    local slot = current_buf_num()
+    local current_project_tbl = self.data.tbl[self.projectKey]
+
+    if current_project_tbl[slot] == nil then
+        print "file not added to tbl"
+        return
+    end
+    if current_project_tbl[slot]["connected"] == nil then
+        print "slot not found"
+        return
+    elseif current_project_tbl[slot]["connected"] == "" then
+        print "No file connected yet"
+        return
+    end
+
+    vim.cmd('vsplit')
+    local win = vim.api.nvim_get_current_win()
+    local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"], true)
+    vim.api.nvim_win_set_buf(win, bufnr)
 end
 
 function alterConfig:PrintConnection()
     local slot = current_buf_num()
     local current_project_tbl = self.data.tbl[self.projectKey]
     if current_project_tbl[slot] == nil then
-        print"file  not added to tbl"
+        print "file  not added to tbl"
         return
     end
     if current_project_tbl[slot]["connected"] == nil then
-        print"No Connection has been made for this file"
+        print "No Connection has been made for this file"
         return
     end
     print(current_project_tbl[slot]["connected"])
 end
-
 
 function alterConfig:CreateWindow()
     local buf = vim.api.nvim_create_buf(false, true)
@@ -247,30 +267,30 @@ function alterConfig:CreateWindow()
     if ui ~= nil then
         col = math.max(ui.width / 2 + 40, 0)
     end
-	local opts = {
-		relative = "editor",
-		width = 80,
-		height = 10,
-		col = col,
-		row = (vim.go.lines / 2),
-		anchor = "SE",
-		style = "minimal",
-		title = "Alter Pairings",
+    local opts = {
+        relative = "editor",
+        width = 80,
+        height = 10,
+        col = col,
+        row = (vim.go.lines / 2),
+        anchor = "SE",
+        style = "minimal",
+        title = "Alter Pairings",
         title_pos = "center",
-		border = "rounded",
-	}
-	local win = vim.api.nvim_open_win(buf, false, opts)
-	vim.api.nvim_set_option_value("winhl", "Normal:MyHighlight", { win = win })
+        border = "rounded",
+    }
+    local win = vim.api.nvim_open_win(buf, false, opts)
+    vim.api.nvim_set_option_value("winhl", "Normal:MyHighlight", { win = win })
     vim.api.nvim_set_current_win(win)
     vim.keymap.set("n", "q",
-    function()
-        vim.api.nvim_win_close(win, true)
-    end, {buffer = buf, silent = true})
+        function()
+            vim.api.nvim_win_close(win, true)
+        end, { buffer = buf, silent = true })
     vim.keymap.set("n", "ss",
-    function()
-        self:SaveConfig()
-        print("Saved")
-    end, {buffer = buf, silent = true})
+        function()
+            self:SaveConfig()
+            print("Saved")
+        end, { buffer = buf, silent = true })
 end
 
 function alterConfig:PrintAll()
