@@ -21,6 +21,12 @@ local alterData = {
 ---@field projectKey string
 local alterConfig = {
     data = alterData,
+    inplace = {
+        cpp = { "h", "hpp" },
+        h   = { "c", "cpp" },
+        c   = { "h" },
+        hpp = { "cpp" }
+    },
     projectKey = ""
 }
 
@@ -220,29 +226,54 @@ function alterConfig:Alternate()
     end
 end
 
-function alterConfig:VSplit()
-    local slot = current_buf_num()
-    local current_project_tbl = self.data.tbl[self.projectKey]
-
-    conditionChecking(current_project_tbl, slot)
-
-    vim.cmd('vsplit')
-    local win = vim.api.nvim_get_current_win()
-    local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
-
-    if bufnr == -1 then
-        bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"], true)
-    end
-    vim.api.nvim_win_set_buf(win, bufnr)
+local function file_exists(filepath)
+    local stat = vim.loop.fs_stat(filepath)
+    return stat ~= nil
 end
 
-function alterConfig:Split()
+function alterConfig:InPlace()
+    local slot = current_buf_num()
+    local pattern = [[%.]]
+
+    local splitSlot = vim.split(slot, pattern)
+    local lastIndex = #splitSlot
+    local targetTbl = self.inplace[splitSlot[lastIndex]]
+
+    local bufnr
+    for _, element in ipairs(targetTbl) do
+        local target = splitSlot[1] .. "." .. element
+        local fileExists = file_exists(target)
+        if fileExists then
+            bufnr = vim.fn.bufnr(target)
+            if bufnr == -1 then
+                bufnr = vim.fn.bufnr(target, true)
+            end
+            if not vim.api.nvim_set_current_buf(bufnr) then
+                vim.fn.bufload(bufnr)
+                vim.api.nvim_set_option_value("buflisted", true, {
+                    buf = bufnr,
+                })
+                break
+            end
+        end
+    end
+
+    if bufnr == nil then
+        print("no in place file")
+    end
+end
+
+function alterConfig:Split(isSplit)
     local slot = current_buf_num()
     local current_project_tbl = self.data.tbl[self.projectKey]
 
     conditionChecking(current_project_tbl, slot)
 
-    vim.cmd('split')
+    if isSplit then
+        vim.cmd('split')
+    else
+        vim.cmd('vsplit')
+    end
     local win = vim.api.nvim_get_current_win()
     local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
 
