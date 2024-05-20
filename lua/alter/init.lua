@@ -245,16 +245,13 @@ function alterConfig:InPlace()
         local fileExists = file_exists(target)
         if fileExists then
             bufnr = vim.fn.bufnr(target)
+
             if bufnr == -1 then
                 bufnr = vim.fn.bufnr(target, true)
             end
-            if not vim.api.nvim_set_current_buf(bufnr) then
-                vim.fn.bufload(bufnr)
-                vim.api.nvim_set_option_value("buflisted", true, {
-                    buf = bufnr,
-                })
-                break
-            end
+
+            vim.api.nvim_set_current_buf(bufnr)
+            break
         end
     end
 
