@@ -248,8 +248,10 @@ function alterConfig:InPlace()
 
             if bufnr == -1 then
                 bufnr = vim.fn.bufnr(target, true)
+                vim.api.nvim_set_option_value("buflisted", true, {
+                    buf = bufnr,
+                })
             end
-
             vim.api.nvim_set_current_buf(bufnr)
             break
         end
