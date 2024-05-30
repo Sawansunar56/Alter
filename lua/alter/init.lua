@@ -185,18 +185,21 @@ function alterConfig:DeleteConnection()
     current_project_tbl[alternateFile]["connected"] = ""
 end
 
+-- Returns 0 if file and connection is found
+-- else returns -1
 local function conditionChecking(current_project_tbl, slot)
     if current_project_tbl[slot] == nil then
         print "file not added to tbl"
-        return
+        return -1
     end
     if current_project_tbl[slot]["connected"] == nil then
         print "slot not found"
-        return
+        return -1
     elseif current_project_tbl[slot]["connected"] == "" then
         print "No file connected yet"
-        return
+        return -1
     end
+    return 0
 end
 
 -- go to alternatte file
@@ -204,7 +207,11 @@ function alterConfig:Alternate()
     local slot = current_buf_num()
     local current_project_tbl = self.data.tbl[self.projectKey]
 
-    conditionChecking(current_project_tbl, slot)
+    local foundFile = conditionChecking(current_project_tbl, slot)
+
+    if foundFile ~= 0 then
+        return
+    end
 
     local bufnr = vim.fn.bufnr(current_project_tbl[slot]["connected"])
     local position = false
@@ -266,7 +273,11 @@ function alterConfig:Split(isSplit)
     local slot = current_buf_num()
     local current_project_tbl = self.data.tbl[self.projectKey]
 
-    conditionChecking(current_project_tbl, slot)
+    local foundFile = conditionChecking(current_project_tbl, slot)
+
+    if foundFile ~= 0 then
+        return
+    end
 
     if isSplit then
         vim.cmd('split')
