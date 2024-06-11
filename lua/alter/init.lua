@@ -30,8 +30,6 @@ local alterConfig = {
     projectKey = ""
 }
 
--- util function sections
--- prints out all given table
 local function printAllElements(tbl)
     for key, value in pairs(tbl) do
         if type(value) == "table" then
@@ -352,8 +350,9 @@ function alterConfig:PrintAll()
     self:CreateWindow()
 end
 
-function alterConfig:setup()
+function alterConfig:setup(inPlace)
     local key = project_key()
+    self.inplace = inPlace
     if key ~= nil then
         self.projectKey = key
     end
