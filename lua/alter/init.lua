@@ -350,9 +350,9 @@ function alterConfig:PrintAll()
     self:CreateWindow()
 end
 
-function alterConfig:setup(inPlace)
+function alterConfig:setup(config)
     local key = project_key()
-    self.inplace = inPlace
+    self.inplace = config.InPlace
     if key ~= nil then
         self.projectKey = key
     end
