@@ -352,7 +352,7 @@ end
 
 function alterConfig:setup(config)
     local key = project_key()
-    self.inplace = config.InPlace
+    self.inplace = vim.tbl_deep_extend('force', vim.deepcopy(self.inplace), config.InPlace or {})
     if key ~= nil then
         self.projectKey = key
     end
