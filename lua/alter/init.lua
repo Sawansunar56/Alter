@@ -21,7 +21,7 @@ local alterData = {
 ---@field projectKey string
 local alterConfig = {
     data = alterData,
-    inplace = {
+    inPlace = {
         cpp = { "h", "hpp" },
         h   = { "c", "cpp" },
         c   = { "h" },
@@ -242,7 +242,7 @@ function alterConfig:InPlace()
 
     local splitSlot = vim.split(slot, pattern)
     local lastIndex = #splitSlot
-    local targetTbl = self.inplace[splitSlot[lastIndex]]
+    local targetTbl = self.inPlace[splitSlot[lastIndex]]
 
     local bufnr
     for _, element in ipairs(targetTbl) do
@@ -352,7 +352,7 @@ end
 
 function alterConfig:setup(config)
     local key = project_key()
-    self.inplace = vim.tbl_deep_extend('force', vim.deepcopy(self.inplace), config.InPlace or {})
+    self.inPlace = vim.tbl_deep_extend('force', vim.deepcopy(self.inPlace), config.inPlace or {})
     if key ~= nil then
         self.projectKey = key
     end
